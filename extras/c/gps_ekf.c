@@ -18,17 +18,27 @@
  * MIT License
  */
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <math.h>
+#include "get_time.h"
 
 #include "tinyekf_config.h"
 #include "tiny_ekf.h"
 
+#define ENTRIES 25
+
 // positioning interval
 static const double T = 1;
+#ifdef AWSM
+extern double myatof(const char *s);
+#endif
 
 static void blkfill(ekf_t * ekf, const double * a, int off)
 {
@@ -119,16 +129,25 @@ static void model(ekf_t * ekf, double SV[4][3])
     }   
 }
 
-static void readline(char * line, FILE * fp)
+static void readline(char * line, FILE * fp, int fd)
 {
     fgets(line, 1000, fp);
+    //int i = 0;
+
+    //for (i = 0; i < 1000; i++) {
+    //        int r = read(fd, line + i, 1);
+    //        //int r = fread(line + i, 1, 1, fp);
+    //        if (r <= 0) break;
+    //        if (line[i] == '\n') break;
+    //}
+    //printf("%s, %d\n", line, i);
 }
 
-static void readdata(FILE * fp, double SV_Pos[4][3], double SV_Rho[4])
+static void readdata(int fd, FILE * fp, double SV_Pos[4][3], double SV_Rho[4])
 {
     char line[1000];
 
-    readline(line, fp);
+    readline(line, fp, fd);
 
     char * p = strtok(line, ",");
 
@@ -136,21 +155,29 @@ static void readdata(FILE * fp, double SV_Pos[4][3], double SV_Rho[4])
 
     for (i=0; i<4; ++i)
         for (j=0; j<3; ++j) {
+#ifdef AWSM
+            SV_Pos[i][j] = myatof(p);
+#else
             SV_Pos[i][j] = atof(p);
+#endif
             p = strtok(NULL, ",");
         }
 
     for (j=0; j<4; ++j) {
+#ifdef AWSM
+        SV_Rho[j] = myatof(p);
+#else
         SV_Rho[j] = atof(p);
+#endif
         p = strtok(NULL, ",");
     }
 }
 
 
-static void skipline(FILE * fp)
+static void skipline(int fd, FILE * fp)
 {
     char line[1000];
-    readline(line, fp);
+    readline(line, fp, fd);
 }
 
 void error(const char * msg)
@@ -159,7 +186,8 @@ void error(const char * msg)
 }
 
 int main(int argc, char ** argv)
-{    
+{
+    unsigned long long st = get_time(), en;	
     // Do generic EKF initialization
     ekf_t ekf;
     ekf_init(&ekf, Nsta, Mobs);
@@ -169,26 +197,27 @@ int main(int argc, char ** argv)
 
     // Open input data file
     FILE * ifp = fopen("gps.csv", "r");
+    int ifd = -1;//open("gps.csv", O_RDONLY);
 
     // Skip CSV header
-    skipline(ifp);
+    skipline(ifd, ifp);
 
     // Make a place to store the data from the file and the output of the EKF
     double SV_Pos[4][3];
     double SV_Rho[4];
-    double Pos_KF[25][3];
+    double Pos_KF[ENTRIES][3];
 
     // Open output CSV file and write header
     const char * OUTFILE = "ekf.csv";
-    FILE * ofp = fopen(OUTFILE, "w");
-    fprintf(ofp, "X,Y,Z\n");
+    //FILE * ofp = fopen(OUTFILE, "w");
+    //fprintf(ofp, "X,Y,Z\n");
 
     int j, k;
 
     // Loop till no more data
-    for (j=0; j<25; ++j) {
+    for (j=0; j<ENTRIES; ++j) {
 
-        readdata(ifp, SV_Pos, SV_Rho);
+        readdata(ifd, ifp, SV_Pos, SV_Rho);
 
         model(&ekf, SV_Pos);
 
@@ -201,23 +230,25 @@ int main(int argc, char ** argv)
 
     // Compute means of filtered positions
     double mean_Pos_KF[3] = {0, 0, 0};
-    for (j=0; j<25; ++j) 
+    for (j=0; j<ENTRIES; ++j) 
         for (k=0; k<3; ++k)
             mean_Pos_KF[k] += Pos_KF[j][k];
     for (k=0; k<3; ++k)
-        mean_Pos_KF[k] /= 25;
+        mean_Pos_KF[k] /= ENTRIES;
 
-
+    en = get_time();
+    print_time(st, en);
     // Dump filtered positions minus their means
-    for (j=0; j<25; ++j) {
-        fprintf(ofp, "%f,%f,%f\n", 
+    for (j=0; j<ENTRIES; ++j) {
+        printf("%f,%f,%f\n", 
                 Pos_KF[j][0]-mean_Pos_KF[0], Pos_KF[j][1]-mean_Pos_KF[1], Pos_KF[j][2]-mean_Pos_KF[2]);
-        printf("%f %f %f\n", Pos_KF[j][0], Pos_KF[j][1], Pos_KF[j][2]);
+        printf("%f %f %f\n\n", Pos_KF[j][0], Pos_KF[j][1], Pos_KF[j][2]);
     }
     
     // Done!
     fclose(ifp);
-    fclose(ofp);
-    printf("Wrote file %s\n", OUTFILE);
+    //close(ifd);
+    //fclose(ofp);
+    //printf("Wrote file %s\n", OUTFILE);
     return 0;
 }
