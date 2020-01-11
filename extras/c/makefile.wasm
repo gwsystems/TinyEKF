@@ -12,18 +12,18 @@ EXTRA_CFLAGS=-DAWSM -DWASM -DCPU_FREQ=3600 -g -O3 $(CPPFLAGS) -I. -I../../src $(
 
 SRC=../../src/tiny_ekf.c
 
-all: clean gps_ekf.awsm 
-#all: clean gps_ekf.wasi
+all: clean gps_ekf_fn.awsm 
+#all: clean gps_ekf_fn.wasi
 
-gps_ekf.awsm: $(SRC) gps_ekf.c
-	${WASMCC} ${WASMCFLAGS} ${CFLAGS} ${EXTRA_CFLAGS} ${OPTFLAGS} gps_ekf.c ${SRC} ${DUMMY} -o gps_ekf.wasm 
-	${SFCC} gps_ekf.wasm -o gps_ekf.bc
-	${CC} ${CFLAGS} ${EXTRA_CFLAGS} ${OPTFLAGS} -D${USE_MEM} gps_ekf.bc ${MEMC} ${RT_LIBC} ${RT_RT} -o gps_ekf.out
-	${SFCC} --inline-constant-globals --runtime-globals gps_ekf.wasm -o gps_ekf.bc
-	${CC} --shared -fPIC ${OPTFLAGS} -D${USE_MEM} -I${ART_INC} ${CFLAGS} ${EXTRA_CFLAGS} gps_ekf.bc ${AMEMC} ${WASMISA} -o gps_ekf.aso
+gps_ekf_fn.awsm: $(SRC) gps_ekf_fn.c
+	${WASMCC} ${WASMCFLAGS} ${CFLAGS} ${EXTRA_CFLAGS} ${OPTFLAGS} gps_ekf_fn.c ${SRC} ${DUMMY} -o gps_ekf_fn.wasm 
+	${SFCC} gps_ekf_fn.wasm -o gps_ekf_fn.bc
+	${CC} ${CFLAGS} ${EXTRA_CFLAGS} ${OPTFLAGS} -D${USE_MEM} gps_ekf_fn.bc ${MEMC} ${RT_LIBC} ${RT_RT} -o gps_ekf_fn.out
+	${SFCC} --inline-constant-globals --runtime-globals gps_ekf_fn.wasm -o gps_ekf_fn.bc
+	${CC} --shared -fPIC ${OPTFLAGS} -D${USE_MEM} -I${ART_INC} ${CFLAGS} ${EXTRA_CFLAGS} gps_ekf_fn.bc ${AMEMC} ${WASMISA} -o gps_ekf_fn.aso
 
-gps_ekf.wasi: $(SRC) gps_ekf.c
-	${WCC} -o gps_ekf.wasi gps_ekf.c ${SRC} ${CFLAGS} ${WCFLAGS} ${EXTRA_CFLAGS} -Wl,--allow-undefined,-z,stack-size=524288,--no-threads,--stack-first,--no-entry,--export-all,--export=main --sysroot=${WSYSROOT} -O3 -flto
+gps_ekf_fn.wasi: $(SRC) gps_ekf_fn.c
+	${WCC} -o gps_ekf_fn.wasi gps_ekf_fn.c ${SRC} ${CFLAGS} ${WCFLAGS} ${EXTRA_CFLAGS} -Wl,--allow-undefined,-z,stack-size=524288,--no-threads,--stack-first,--no-entry,--export-all,--export=main --sysroot=${WSYSROOT} -O3 -flto
 
 hello.sf: hello.c
 	${WASMCC} ${WASMCFLAGS} ${CFLAGS} ${EXTRA_CFLAGS} ${OPTFLAGS} hello.c ${DUMMY} -o hello.wasm
@@ -33,5 +33,5 @@ hello.sf: hello.c
 	${CC} --shared -fPIC ${OPTFLAGS} -D${USE_MEM} -I${ART_INC} ${CFLAGS} ${EXTRA_CFLAGS} hello.bc ${AMEMC} ${WASMISA} -o hello.aso
 
 clean:
-	@ rm -f gps_ekf.wasm gps_ekf.bc gps_ekf.out gps_ekf.aso
+	@ rm -f gps_ekf_fn.wasm gps_ekf_fn.bc gps_ekf_fn.out gps_ekf_fn.aso
 

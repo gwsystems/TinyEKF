@@ -18,6 +18,7 @@
  * MIT License
  */
 
+#include <assert.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -32,7 +33,6 @@
 #include "tinyekf_config.h"
 #include "tiny_ekf.h"
 
-#define ENTRIES 1
 
 // positioning interval
 static const double T = 1;
@@ -185,9 +185,19 @@ void error(const char * msg)
     fprintf(stderr, "%s\n", msg);
 }
 
+//#define MAX_SIZE 4096
+//char inp_ekf_buf[MAX_SIZE] = { 0 };
+//#define SV_POS_SZ (4*3*8)
+//#define SV_RHO_SZ (4*8)
+//#define POS_KF_SZ (3*8)
+#define ENTRIES 1
+#define DUMP_FILE "ekf_raw.dat"
+//#define DUMP_STATE
+
+#ifdef DUMP_STATE
+
 int main(int argc, char ** argv)
 {
-    unsigned long long st = get_time(), en;	
     // Do generic EKF initialization
     ekf_t ekf;
     ekf_init(&ekf, Nsta, Mobs);
@@ -208,10 +218,12 @@ int main(int argc, char ** argv)
     double Pos_KF[ENTRIES][3];
 
     // Open output CSV file and write header
-    const char * OUTFILE = "ekf.csv";
+    //const char * OUTFILE = "ekf.csv";
     //FILE * ofp = fopen(OUTFILE, "w");
     //fprintf(ofp, "X,Y,Z\n");
+    FILE *dfp = fopen(DUMP_FILE, "w+b");
 
+    assert(ENTRIES == 1);
     int j, k;
 
     // Loop till no more data
@@ -227,6 +239,16 @@ int main(int argc, char ** argv)
         for (k=0; k<3; ++k)
             Pos_KF[j][k] = ekf.x[2*k];
     }
+    int r = fwrite(&ekf, 1, sizeof(ekf), dfp);
+    assert(r == sizeof(ekf));
+    r = fwrite(&SV_Pos, 1, sizeof(SV_Pos), dfp);
+    assert(r == sizeof(SV_Pos));
+    r = fwrite(&SV_Rho, 1, sizeof(SV_Rho), dfp);
+    assert(r == sizeof(SV_Rho));
+    r = fwrite(&Pos_KF[0], 1, sizeof(Pos_KF), dfp);
+    assert(r == sizeof(Pos_KF));
+    fclose(dfp);
+
 
     // Compute means of filtered positions
     double mean_Pos_KF[3] = {0, 0, 0};
@@ -252,3 +274,50 @@ int main(int argc, char ** argv)
     //printf("Wrote file %s\n", OUTFILE);
     return 0;
 }
+#else
+int main(int argc, char ** argv)
+{
+//	unsigned long long st = get_time(), en;	
+	ekf_t ekf;
+	double SV_Pos[4][3];
+	double SV_Rho[4];
+	double Pos_KF[3];
+
+	//read state and input positions (binary)
+	int r = read(0, &ekf, sizeof(ekf_t));
+	assert(r == sizeof(ekf_t));
+	r = read(0, &SV_Pos, sizeof(SV_Pos));
+	assert(r == sizeof(SV_Pos));
+	r = read(0, &SV_Rho, sizeof(SV_Rho));
+	assert(r == sizeof(SV_Rho));
+	r = read(0, &Pos_KF, sizeof(Pos_KF));
+	assert(r == sizeof(Pos_KF));
+	int k;
+
+	//RUN EKF!!!
+	/*************************************/
+	model(&ekf, SV_Pos);
+	ekf_step(&ekf, SV_Rho);
+	// grab positions, ignoring velocities
+	for (k=0; k<3; ++k)
+		Pos_KF[k] = ekf.x[2*k];
+	/*************************************/
+
+	//write state..(binary)
+	r = write(1, &ekf, sizeof(ekf));
+	assert(r == sizeof(ekf));
+	//write the input..
+	r = write(1, &SV_Pos, sizeof(SV_Pos));
+	assert(r == sizeof(SV_Pos));
+	r = write(1, &SV_Rho, sizeof(SV_Rho));
+	assert(r == sizeof(SV_Rho));
+	//write the output positions (binary)
+	r = write(1, &Pos_KF[0], sizeof(Pos_KF));
+	assert(r == sizeof(Pos_KF));
+//	en = get_time();
+//	print_time(st, en);
+
+	return 0;
+}
+
+#endif

@@ -12,24 +12,24 @@ WCFLAGS += --target=wasm32-wasi
 
 SRC = ../../src
 
-all: gps_ekf gps_ekf.wasi
+all: gps_ekf_fn #gps_ekf_fn.wasi
 
-run: gps_ekf
-	./gps_ekf
+run: gps_ekf_fn
+	./gps_ekf_fn
 
 
-gps_ekf.em: gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
-	emcc -s ALLOW_MEMORY_GROWTH=1 -O3 -g -Wall -I. -I$(SRC) -o gps_ekf.em.js gps_ekf.c $(SRC)/tiny_ekf.c -lm
+gps_ekf_fn.em: gps_ekf_fn.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
+	emcc -s ALLOW_MEMORY_GROWTH=1 -O3 -g -Wall -I. -I$(SRC) -o gps_ekf_fn.em.js gps_ekf_fn.c $(SRC)/tiny_ekf.c -lm
 
-gps_ekf: gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
-	clang -O3 -g -Wall -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c -lm
-	gcc -O3 -g -Wall -I. -I$(SRC) -o gps_ekf.x gps_ekf.c $(SRC)/tiny_ekf.c -lm
+gps_ekf_fn: gps_ekf_fn.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
+	clang -O3 -g -I. -I$(SRC) -o gps_ekf_fn gps_ekf_fn.c $(SRC)/tiny_ekf.c -lm
+	gcc -O3 -g -I. -I$(SRC) -o gps_ekf_fn.x gps_ekf_fn.c $(SRC)/tiny_ekf.c -lm
 
-gps_ekf.wasi: gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
-	${WCC} -O3 -g -Wall -I. -I$(SRC) -o gps_ekf.wasi ${WCFLAGS} gps_ekf.c $(SRC)/tiny_ekf.c -lm -Wl,--allow-undefined,-z,stack-size=524288,--no-threads,--stack-first,--no-entry,--export-all,--export=main --sysroot=${WSYSROOT} -flto
+gps_ekf_fn.wasi: gps_ekf_fn.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
+	${WCC} -O3 -g -Wall -I. -I$(SRC) -o gps_ekf_fn.wasi ${WCFLAGS} gps_ekf_fn.c $(SRC)/tiny_ekf.c -lm -Wl,--allow-undefined,-z,stack-size=524288,--no-threads,--stack-first,--no-entry,--export-all,--export=main --sysroot=${WSYSROOT} -flto
 
 edit:
-	vim gps_ekf.c
+	vim gps_ekf_fn.c
 
 clean:
-	rm -f gps_ekf gps_ekf.x gps_ekf.wasi *.o *~ ekf.csv
+	rm -f gps_ekf_fn gps_ekf_fn.x gps_ekf_fn.wasi *.o *~ ekf.csv
