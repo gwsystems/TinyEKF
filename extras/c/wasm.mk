@@ -3,15 +3,12 @@ BASE_DIR=/sledge/
 AWSM_CC=awsm
 
 WASM_CC=wasm32-unknown-unknown-wasm-clang
-# same stack-size for all
-WASMLINKFLAGS_SO=-Wl,-z,stack-size=524288,--allow-undefined,--no-threads,--stack-first,--no-entry,--export-all,--export=main,--export=dummy
-
-WASMLINKFLAGS_OUT=-Wl,-z,stack-size=524288,--allow-undefined,--no-threads,--stack-first,--no-entry,--export-all,--export=main,--export=dummy
+WASMLINKFLAGS=-Wl,-z,stack-size=524288,--allow-undefined,--no-threads,--stack-first,--no-entry,--export-all,--export=main,--export=dummy
 
 # The SLEDGE, WASM, and CPU_FREQ defines trigger preprocessor conditionals in the TinyEKF source code
 # It looks like this has to set when compiling the WebAssembly module.
-WASMCFLAGS_SO=${WASMLINKFLAGS_SO} -nostartfiles -DSLEDGE -DWASM -DCPU_FREQ=3600 -g -I. -I../../src $(LDFLAGS) -lm
-WASMCFLAGS_OUT=${WASMLINKFLAGS_OUT} -nostartfiles -DWASM -DCPU_FREQ=3600 -g -I. -I../../src $(LDFLAGS) -lm
+WASMCFLAGS_OUT=${WASMLINKFLAGS} -nostartfiles -DWASM -DCPU_FREQ=3600 -g -I. -I../../src $(LDFLAGS) -lm
+WASMCFLAGS_SO=${WASMCFLAGS_OUT} -DSLEDGE
 
 NATIVE_CC=clang
 NATIVE_CC_CFLAGS=-DUSE_MEM_VM
