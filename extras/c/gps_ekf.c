@@ -36,7 +36,7 @@
 
 // positioning interval
 static const double T = 1;
-#ifdef AWSM
+#ifdef SLEDGE
 extern double myatof(const char *s);
 #endif
 
@@ -155,7 +155,7 @@ static void readdata(int fd, FILE * fp, double SV_Pos[4][3], double SV_Rho[4])
 
     for (i=0; i<4; ++i)
         for (j=0; j<3; ++j) {
-#ifdef AWSM
+#ifdef SLEDGE
             SV_Pos[i][j] = myatof(p);
 #else
             SV_Pos[i][j] = atof(p);
@@ -164,7 +164,7 @@ static void readdata(int fd, FILE * fp, double SV_Pos[4][3], double SV_Rho[4])
         }
 
     for (j=0; j<4; ++j) {
-#ifdef AWSM
+#ifdef SLEDGE
         SV_Rho[j] = myatof(p);
 #else
         SV_Rho[j] = atof(p);

@@ -8,10 +8,10 @@ WASMLINKFLAGS_SO=-Wl,-z,stack-size=524288,--allow-undefined,--no-threads,--stack
 
 WASMLINKFLAGS_OUT=-Wl,-z,stack-size=524288,--allow-undefined,--no-threads,--stack-first,--no-entry,--export-all,--export=main,--export=dummy
 
-# The AWSM, WASM, and CPU_FREQ defines trigger preprocessor conditionals in the TinyEKF source code
+# The SLEDGE, WASM, and CPU_FREQ defines trigger preprocessor conditionals in the TinyEKF source code
 # It looks like this has to set when compiling the WebAssembly module.
-WASMCFLAGS_SO=${WASMLINKFLAGS_SO} -nostartfiles -DAWSM -DWASM -DCPU_FREQ=3600 -g -I. -I../../src $(LDFLAGS) -lm
-WASMCFLAGS_OUT=${WASMLINKFLAGS_OUT} -nostartfiles -DAWSM -DWASM -DCPU_FREQ=3600 -g -I. -I../../src $(LDFLAGS) -lm
+WASMCFLAGS_SO=${WASMLINKFLAGS_SO} -nostartfiles -DSLEDGE -DWASM -DCPU_FREQ=3600 -g -I. -I../../src $(LDFLAGS) -lm
+WASMCFLAGS_OUT=${WASMLINKFLAGS_OUT} -nostartfiles -DWASM -DCPU_FREQ=3600 -g -I. -I../../src $(LDFLAGS) -lm
 
 NATIVE_CC=clang
 NATIVE_CC_CFLAGS=-DUSE_MEM_VM
@@ -20,7 +20,6 @@ LDFLAGS=-lm
 
 # Used with both NATIVE_CC and WASM_CC
 OPTFLAGS=-O3 -flto
-
 
 MEMC_64=64bit_nix.c
 
