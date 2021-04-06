@@ -1,4 +1,4 @@
-BASE_DIR=/sledge/
+BASE_DIR=../../../../../
 
 AWSM_CC=awsm
 
